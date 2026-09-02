@@ -1,15 +1,22 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""
-PyInstaller spec for BG Cleaner.
-Build with:  pyinstaller bg_cleaner.spec
-"""
 import os, sys
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 block_cipher = None
 
-# Collect all rembg + onnxruntime submodules so the exe can find them
-hidden = collect_submodules("rembg") + collect_submodules("onnxruntime") + collect_submodules("pymatting")
+# Collect ALL submodules for every package rembg needs
+hidden = (
+    collect_submodules("rembg") +
+    collect_submodules("onnxruntime") +
+    collect_submodules("pymatting") +
+    collect_submodules("scipy") +
+    collect_submodules("skimage") +
+    collect_submodules("numpy") +
+    collect_submodules("PIL") +
+    collect_submodules("imageio") +
+    collect_submodules("networkx") +
+    ["encodings", "encodings.utf_8", "encodings.ascii", "encodings.latin_1"]
+)
 
 a = Analysis(
     ["app.py"],
@@ -42,8 +49,8 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=True,          # show console so user sees "Running at http://localhost:5000"
-    icon=None,             # add an .ico here if you have one
+    console=True,
+    icon=None,
 )
 
 coll = COLLECT(
