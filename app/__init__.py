@@ -44,7 +44,7 @@ MAX_BATCH = 20
 
 def create_app() -> Flask:
     # Pre-load the AI model at startup so first request is instant
-    print("  Loading AI model (u2net)...", flush=True)
+    print("  Loading AI model (u2netp)...", flush=True)
     _get_session()
     print("  AI model ready!", flush=True)
 

@@ -3,7 +3,7 @@ services:
     name: bg-cleaner
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt && python -c "from rembg import new_session; new_session('u2net')"
+    buildCommand: pip install -r requirements.txt && python -c "from rembg import new_session; new_session('u2netp')"
     startCommand: python app.py
     envVars:
       - key: PYTHON_VERSION

@@ -25,8 +25,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ---- Pre-download the AI model (u2net: accurate subject detection) ----
-RUN python -c "from rembg import new_session; new_session('u2net')"
+# ---- Pre-download the lightweight AI model (u2netp: 4.5 MB, fast) ----
+RUN python -c "from rembg import new_session; new_session('u2netp')"
 
 # ---- Copy application code ----
 COPY app/ app/
