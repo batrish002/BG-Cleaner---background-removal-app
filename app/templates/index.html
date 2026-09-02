@@ -652,38 +652,57 @@
         updateBatchBar(validFiles.length, 0, 0, 0);
       }
 
-      // Process sequentially (rembg model is stateless but keeps memory hot)
+      // Send ALL images in ONE batch request
+      // Show all cards as processing
+      validFiles.forEach((file, idx) => {
+        setCardStatus(cardMap[idx].el, 'processing');
+      });
+      if (isBatch) updateBatchBar(validFiles.length, 0, 0, 0);
+
+      // Build single FormData with all images
+      const form = new FormData();
+      validFiles.forEach(file => {
+        form.append('images', file);
+      });
+
       let done = 0, failed = 0;
-      for (let idx = 0; idx < validFiles.length; idx++) {
-        const entry = cardMap[idx];
-        setCardStatus(entry.el, 'processing');
-        if (isBatch) updateBatchBar(validFiles.length, idx, done, failed);
+      try {
+        const res  = await fetch('/api/remove-bg-batch', { method: 'POST', body: form });
+        const data = await res.json();
 
-        const form = new FormData();
-        form.append('images', entry.file);
+        if (!res.ok) throw new Error(data.error || 'Processing failed');
 
-        try {
-          const res  = await fetch('/api/remove-bg-batch', { method: 'POST', body: form });
-          const data = await res.json();
-
-          if (!res.ok) throw new Error(data.error || 'Processing failed');
-          if (data.results && data.results.length > 0) {
-            const r = data.results[0];
-            setCardResult(entry.el, r);
-            setCardStatus(entry.el, 'done');
-            processedResults.push(r);
-            done++;
-          } else if (data.errors && data.errors.length > 0) {
-            setCardStatus(entry.el, 'error', data.errors[0].error);
-            failed++;
-          }
-        } catch (err) {
-          setCardStatus(entry.el, 'error', err.message);
-          failed++;
+        // Map results back to cards
+        if (data.results) {
+          data.results.forEach(r => {
+            // Find the card by matching original_name
+            const idx = validFiles.findIndex(f => f.name === r.original_name);
+            if (idx >= 0) {
+              setCardResult(cardMap[idx].el, r);
+              setCardStatus(cardMap[idx].el, 'done');
+              processedResults.push(r);
+              done++;
+            }
+          });
         }
-
-        if (isBatch) updateBatchBar(validFiles.length, idx + 1, done, failed);
+        if (data.errors) {
+          data.errors.forEach(e => {
+            const idx = validFiles.findIndex(f => f.name === e.filename);
+            if (idx >= 0) {
+              setCardStatus(cardMap[idx].el, 'error', e.error);
+              failed++;
+            }
+          });
+        }
+      } catch (err) {
+        // Mark all as failed
+        validFiles.forEach((file, idx) => {
+          setCardStatus(cardMap[idx].el, 'error', err.message);
+          failed++;
+        });
       }
+
+      if (isBatch) updateBatchBar(validFiles.length, validFiles.length, done, failed);
 
       // Finalize
       cardsTitle.textContent = isBatch
