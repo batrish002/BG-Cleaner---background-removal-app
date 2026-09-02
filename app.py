@@ -15,11 +15,19 @@ def _base_path() -> str:
     return os.path.dirname(os.path.abspath(__file__))
 
 
+def _print(msg: str):
+    """Print with flush so it shows immediately in PowerShell."""
+    print(msg, flush=True)
+
+
 # Make sure temp dirs exist next to the exe / source
 base = _base_path()
 os.makedirs(os.path.join(base, "uploads"), exist_ok=True)
 os.makedirs(os.path.join(base, "results"), exist_ok=True)
 os.chdir(base)
+
+_print("Starting BG Cleaner...")
+_print("Loading AI model (this takes ~1 minute on first run)...")
 
 from app import create_app
 
@@ -31,32 +39,35 @@ if __name__ == "__main__":
     host = "0.0.0.0" if os.environ.get("PORT") else "127.0.0.1"
     url = f"http://localhost:{port}"
 
+    _print("")
+    _print("=" * 50)
+    _print(f"  BG Cleaner is ready!")
+    _print(f"  Opening browser at: {url}")
+    _print("=" * 50)
+    _print("")
+    _print("  If browser does not open, visit:")
+    _print(f"  {url}")
+    _print("")
+    _print("  Press Ctrl+C to quit.")
+    _print("")
+
     # Only open browser when running locally (not on Railway/Render)
     if not os.environ.get("PORT"):
         def _open_browser():
-            # Wait for server to be ready
-            time.sleep(2)
+            time.sleep(1)
             try:
-                # Try webbrowser module first
                 webbrowser.open(url)
             except Exception:
-                # Fallback: use system command
                 try:
                     if sys.platform == "win32":
-                        subprocess.Popen(["cmd", "/c", "start", url], shell=False)
+                        os.startfile(url)
                     elif sys.platform == "darwin":
                         subprocess.Popen(["open", url])
                     else:
                         subprocess.Popen(["xdg-open", url])
                 except Exception:
-                    pass
+                    _print(f"\n  Please open manually: {url}\n")
 
         threading.Thread(target=_open_browser, daemon=True).start()
-
-    print(f"\n  {'='*50}")
-    print(f"  BG Cleaner is running!")
-    print(f"  Open this URL in your browser: {url}")
-    print(f"  {'='*50}\n")
-    print(f"  Press Ctrl+C to quit.\n")
 
     application.run(debug=False, host=host, port=port)
