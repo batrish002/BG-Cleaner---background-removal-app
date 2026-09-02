@@ -652,57 +652,70 @@
         updateBatchBar(validFiles.length, 0, 0, 0);
       }
 
-      // Send ALL images in ONE batch request
-      // Show all cards as processing
+      // Process in chunks of 5 to avoid Railway timeout
+      const CHUNK_SIZE = 5;
+      let done = 0, failed = 0;
+
+      // Show all cards as pending first
       validFiles.forEach((file, idx) => {
-        setCardStatus(cardMap[idx].el, 'processing');
+        setCardStatus(cardMap[idx].el, 'pending');
       });
       if (isBatch) updateBatchBar(validFiles.length, 0, 0, 0);
 
-      // Build single FormData with all images
-      const form = new FormData();
-      validFiles.forEach(file => {
-        form.append('images', file);
-      });
+      // Process chunks sequentially
+      for (let chunkStart = 0; chunkStart < validFiles.length; chunkStart += CHUNK_SIZE) {
+        const chunk = validFiles.slice(chunkStart, chunkStart + CHUNK_SIZE);
 
-      let done = 0, failed = 0;
-      try {
-        const res  = await fetch('/api/remove-bg-batch', { method: 'POST', body: form });
-        const data = await res.json();
-
-        if (!res.ok) throw new Error(data.error || 'Processing failed');
-
-        // Map results back to cards
-        if (data.results) {
-          data.results.forEach(r => {
-            // Find the card by matching original_name
-            const idx = validFiles.findIndex(f => f.name === r.original_name);
-            if (idx >= 0) {
-              setCardResult(cardMap[idx].el, r);
-              setCardStatus(cardMap[idx].el, 'done');
-              processedResults.push(r);
-              done++;
-            }
-          });
-        }
-        if (data.errors) {
-          data.errors.forEach(e => {
-            const idx = validFiles.findIndex(f => f.name === e.filename);
-            if (idx >= 0) {
-              setCardStatus(cardMap[idx].el, 'error', e.error);
-              failed++;
-            }
-          });
-        }
-      } catch (err) {
-        // Mark all as failed
-        validFiles.forEach((file, idx) => {
-          setCardStatus(cardMap[idx].el, 'error', err.message);
-          failed++;
+        // Mark this chunk as processing
+        chunk.forEach(file => {
+          const idx = validFiles.indexOf(file);
+          setCardStatus(cardMap[idx].el, 'processing');
         });
-      }
 
-      if (isBatch) updateBatchBar(validFiles.length, validFiles.length, done, failed);
+        // Build FormData for this chunk
+        const form = new FormData();
+        chunk.forEach(file => {
+          form.append('images', file);
+        });
+
+        try {
+          const res = await fetch('/api/remove-bg-batch', { method: 'POST', body: form });
+          const data = await res.json();
+
+          if (!res.ok) throw new Error(data.error || 'Processing failed');
+
+          // Map results back to cards
+          if (data.results) {
+            data.results.forEach(r => {
+              const idx = validFiles.findIndex(f => f.name === r.original_name);
+              if (idx >= 0) {
+                setCardResult(cardMap[idx].el, r);
+                setCardStatus(cardMap[idx].el, 'done');
+                processedResults.push(r);
+                done++;
+              }
+            });
+          }
+          if (data.errors) {
+            data.errors.forEach(e => {
+              const idx = validFiles.findIndex(f => f.name === e.filename);
+              if (idx >= 0) {
+                setCardStatus(cardMap[idx].el, 'error', e.error);
+                failed++;
+              }
+            });
+          }
+        } catch (err) {
+          // Mark this chunk as failed
+          chunk.forEach(file => {
+            const idx = validFiles.indexOf(file);
+            setCardStatus(cardMap[idx].el, 'error', err.message);
+            failed++;
+          });
+        }
+
+        if (isBatch) updateBatchBar(validFiles.length, Math.min(chunkStart + CHUNK_SIZE, validFiles.length), done, failed);
+      }
 
       // Finalize
       cardsTitle.textContent = isBatch
