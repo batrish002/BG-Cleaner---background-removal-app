@@ -652,8 +652,7 @@
         updateBatchBar(validFiles.length, 0, 0, 0);
       }
 
-      // Process in chunks of 5 to avoid Railway timeout
-      const CHUNK_SIZE = 5;
+      // Process ONE image at a time to avoid Railway timeout
       let done = 0, failed = 0;
 
       // Show all cards as pending first
@@ -662,21 +661,14 @@
       });
       if (isBatch) updateBatchBar(validFiles.length, 0, 0, 0);
 
-      // Process chunks sequentially
-      for (let chunkStart = 0; chunkStart < validFiles.length; chunkStart += CHUNK_SIZE) {
-        const chunk = validFiles.slice(chunkStart, chunkStart + CHUNK_SIZE);
+      // Process each image individually
+      for (let idx = 0; idx < validFiles.length; idx++) {
+        const file = validFiles[idx];
+        setCardStatus(cardMap[idx].el, 'processing');
+        if (isBatch) updateBatchBar(validFiles.length, idx, done, failed);
 
-        // Mark this chunk as processing
-        chunk.forEach(file => {
-          const idx = validFiles.indexOf(file);
-          setCardStatus(cardMap[idx].el, 'processing');
-        });
-
-        // Build FormData for this chunk
         const form = new FormData();
-        chunk.forEach(file => {
-          form.append('images', file);
-        });
+        form.append('images', file);
 
         try {
           const res = await fetch('/api/remove-bg-batch', { method: 'POST', body: form });
@@ -684,37 +676,24 @@
 
           if (!res.ok) throw new Error(data.error || 'Processing failed');
 
-          // Map results back to cards
-          if (data.results) {
-            data.results.forEach(r => {
-              const idx = validFiles.findIndex(f => f.name === r.original_name);
-              if (idx >= 0) {
-                setCardResult(cardMap[idx].el, r);
-                setCardStatus(cardMap[idx].el, 'done');
-                processedResults.push(r);
-                done++;
-              }
-            });
-          }
-          if (data.errors) {
-            data.errors.forEach(e => {
-              const idx = validFiles.findIndex(f => f.name === e.filename);
-              if (idx >= 0) {
-                setCardStatus(cardMap[idx].el, 'error', e.error);
-                failed++;
-              }
-            });
+          if (data.results && data.results.length > 0) {
+            setCardResult(cardMap[idx].el, data.results[0]);
+            setCardStatus(cardMap[idx].el, 'done');
+            processedResults.push(data.results[0]);
+            done++;
+          } else if (data.errors && data.errors.length > 0) {
+            setCardStatus(cardMap[idx].el, 'error', data.errors[0].error);
+            failed++;
+          } else {
+            setCardStatus(cardMap[idx].el, 'error', 'No result returned');
+            failed++;
           }
         } catch (err) {
-          // Mark this chunk as failed
-          chunk.forEach(file => {
-            const idx = validFiles.indexOf(file);
-            setCardStatus(cardMap[idx].el, 'error', err.message);
-            failed++;
-          });
+          setCardStatus(cardMap[idx].el, 'error', err.message);
+          failed++;
         }
 
-        if (isBatch) updateBatchBar(validFiles.length, Math.min(chunkStart + CHUNK_SIZE, validFiles.length), done, failed);
+        if (isBatch) updateBatchBar(validFiles.length, idx + 1, done, failed);
       }
 
       // Finalize
