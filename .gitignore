@@ -1,0 +1,42 @@
+# ---- Python ----
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ---- Virtual Environment ----
+venv/
+.venv/
+env/
+
+# ---- Temp & Uploads ----
+uploads/
+results/
+*.zip
+
+# ---- Test files ----
+test_*.png
+test_*.jpg
+bench_test.png
+test_output.*
+
+# ---- IDE ----
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- PyInstaller ----
+*.spec
+*.exe
+
+# ---- Freebuff ----
+.freebuff/

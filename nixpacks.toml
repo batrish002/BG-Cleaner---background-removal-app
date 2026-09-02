@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["postgresql"]
+
+[phases.build]
+cmds = [
+  "pip install -r requirements.txt",
+  "python -c \"from rembg import new_session; new_session('u2net')\""
+]
+
+[phases.run]
+cmd = "python app.py"

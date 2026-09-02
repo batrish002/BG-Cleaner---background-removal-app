@@ -1,0 +1,21 @@
+# ============================================================
+#  BG Cleaner — Docker Compose
+#  Launch:  docker compose up --build
+#  Stop:    docker compose down
+# ============================================================
+
+services:
+  bg-cleaner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bg-cleaner
+    ports:
+      - "5000:5000"
+    volumes:
+      # Persist uploads & results on host (optional)
+      - ./uploads:/app/uploads
+      - ./results:/app/results
+    environment:
+      - SECRET_KEY=change-me-in-production
+    restart: unless-stopped

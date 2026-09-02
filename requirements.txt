@@ -1,0 +1,4 @@
+flask
+rembg[cpu]
+Pillow
+gunicorn

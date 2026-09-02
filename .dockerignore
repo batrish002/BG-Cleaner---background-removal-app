@@ -1,0 +1,24 @@
+# ---- Git & IDE ----
+.git
+.gitignore
+.freebuff/
+
+# ---- Build artifacts ----
+build/
+dist/
+*.spec
+*.pyc
+__pycache__/
+
+# ---- Temp & uploads ----
+uploads/
+results/
+
+# ---- OS junk ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Test files ----
+test_*.png
+test_*.jpg
